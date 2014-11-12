@@ -1,4 +1,6 @@
-import slimit
+import xml.etree.ElementTree as ET
+import json
+import slimit #javascript parser
 
 f = file('SmartSantanderData.js')
 d = f.read()
@@ -11,8 +13,25 @@ def step(typestr):
     assert token.type == typestr
     return token
 
+def sensorxml(xmlstr):
+    #print xmlstr
+    sdata = {}
+    root = ET.fromstring(xmlstr)
+    for child in root:
+        #print child.tag, child.attrib, child.text
+        entries = child.text.split(';')
+        #print entries
+        for e in entries:
+            ds = e.split(':')
+            #print ds
+            sdata[ds[0]] = ds[1].strip()
+    #print sdata
+    return sdata
+
 #counter for markers, also to sanity check parsing
 idx = 0
+
+nodeinfo = {} #this is our result. nodeid: 'geopos', 'data'
 
 while True:
     t = lexer.token()
@@ -27,7 +46,8 @@ while True:
             step('COMMA')
             step('MINUS')
             lng = step('NUMBER')
-            print "*** FOUND:", float(lat.value), -float(lng.value),
+            lnglat = float(lat.value), -float(lng.value),
+            print "*** FOUND:", lnglat
             idx += 1
             if idx == 1051: #apparently an exception at the end
                 idx = 1053
@@ -40,11 +60,32 @@ while True:
                     assert titlenum == idx
                     step('EQ')
                     xml = step('STRING')
-                    print xml #...
+
+                    #print xml #...
+                    xmlstr = xml.value
+                    xmlstr = xmlstr[1:-1]
+                    xmlstr = xmlstr.replace('</br><br>', ';') #was invalid xml
+                    xmlstr = xmlstr.replace('</br>', '')
+                    
+                    #print type(xmlstr), xmlstr
+                    sdata = sensorxml(xmlstr)
+                    try:
+                        nodeinfo[sdata['Node']] = {
+                            'geopos': lnglat,
+                            'data': sdata
+                            }
+                    except KeyError:
+                        #print "Invalid?", sdata #seems to be the Meshlium
+                        pass
+                        
                     break
             
         else:
             print "-!- NOT:", maybeparen
+
+#print nodeinfo
+with open('nodeinfo.json', 'w') as fp:
+    json.dump(nodeinfo, fp, indent=4)
 
 """
 >>> dir(t)
