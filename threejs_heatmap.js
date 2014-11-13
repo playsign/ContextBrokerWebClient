@@ -1,5 +1,5 @@
 var cubegeom = new THREE.CubeGeometry(100, 100, 100);
-var mat = new THREE.MeshBasicMaterial({color: 0x0000FF});
+var mat = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
 var cube = new THREE.Mesh(cubegeom, mat);
 scene.add(cube);
 
@@ -50,8 +50,12 @@ scene.add(cube);
         generate();
 
         // whenever a user clicks on the ContainerWrapper the data will be regenerated -> new max & min
-        document.getElementById('heatmapContainerWrapper').onclick = function() { generate(); };
+        document.getElementById('heatmapContainerWrapper').onclick = function() { 
+            generate(); 
+            cube.material.map.needsUpdate = true;            
+};
 
 var heatmap_tex = new THREE.Texture(heatmap._renderer.canvas, new THREE.UVMapping(), THREE.RepeatWrapping, THREE.RepeatWrapping);
 mat.map = heatmap_tex;
 cube.material.map.needsUpdate = true;
+heatmap._renderer.canvas.parentNode.removeChild(heatmap._renderer.canvas);
